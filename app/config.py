@@ -8,7 +8,7 @@ class Settings(BaseSettings):
 
     llm_base_url: str = "https://api.groq.com/openai/v1"
     llm_api_key: str = ""
-    llm_model: str = "llama-3.3-70b-versatile"
+    llm_model: str = "openai/gpt-oss-20b"
 
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"

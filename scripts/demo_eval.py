@@ -63,7 +63,11 @@ def ingest(paths: list[str]) -> None:
 
 def run(module: str, *args: str) -> None:
     log(f"Running {module} {' '.join(args)}")
-    subprocess.run([sys.executable, "-m", module, *args], check=True)
+    proc = subprocess.run([sys.executable, "-m", module, *args], capture_output=True, text=True,
+                          encoding="utf-8", errors="replace")
+    for line in (proc.stdout + proc.stderr).strip().splitlines()[-25:]:
+        log("  " + line)
+    proc.check_returncode()
 
 
 def main():
