@@ -7,8 +7,9 @@ import argparse
 import os
 import subprocess
 import sys
-import urllib.request
 from datetime import datetime
+
+import httpx
 
 PAPERS = {
     "attention_is_all_you_need.pdf": "https://arxiv.org/pdf/1706.03762",
@@ -35,9 +36,10 @@ def download() -> list[str]:
         path = os.path.join(PDF_DIR, name)
         if not os.path.exists(path):
             log(f"Downloading {name}")
-            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (demo-eval)"})
-            with urllib.request.urlopen(req, timeout=120) as res, open(path, "wb") as out:
-                out.write(res.read())
+            res = httpx.get(url, follow_redirects=True, timeout=120)
+            res.raise_for_status()
+            with open(path, "wb") as out:
+                out.write(res.content)
         paths.append(path)
     return paths
 
