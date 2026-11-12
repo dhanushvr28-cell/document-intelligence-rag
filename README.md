@@ -70,8 +70,24 @@ Each test question is generated from one chunk, which becomes the gold passage. 
 
 ### Results
 
-<!-- Paste the tables from eval/results.md here after running the evaluation on your documents. -->
-_Run the two commands above and paste `eval/results.md` here._
+Measured on five public research papers (Attention Is All You Need, BERT, Sentence-BERT, RAG, LoRA): 87 pages, 518 chunks, 30 generated questions, top_k = 5, laptop CPU.
+
+| Retrieval mode | Hit@1 | Hit@5 | MRR | Latency (ms) |
+|---|---|---|---|---|
+| Vector only | 0.467 | 0.667 | 0.533 | 20 |
+| BM25 only | 0.633 | 0.767 | 0.682 | 8 |
+| Hybrid (rank fusion) | 0.600 | 0.767 | 0.669 | 23 |
+| **Hybrid + reranker** | **0.867** | **0.900** | **0.883** | 1040 |
+
+Answers with hybrid + reranker (`openai/gpt-oss-20b` on Groq, LLM-judged): **90.0% correct, 96.7% faithful** to the retrieved context.
+
+What the numbers show:
+
+- Reranking is the largest gain: Hit@1 rises from 0.60 to 0.87, at the cost of about one second per query on CPU.
+- BM25 beats vector search here. Research papers are full of exact terms (model names, dataset names, numbers) that keyword search matches directly.
+- Plain rank fusion did not beat BM25 alone on this set; its value is in supplying the reranker with candidates from both retrievers.
+
+Caveats: 30 questions is a small sample, the questions were generated from the gold passage (which favours keyword overlap), a few are ambiguous without their passage, and answer quality was judged by an LLM rather than by people.
 
 ## Design decisions
 
