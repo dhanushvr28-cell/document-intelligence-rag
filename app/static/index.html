@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Document Intelligence Assistant</title>
+<style>
+  body{font-family:system-ui,sans-serif;max-width:860px;margin:2rem auto;padding:0 1rem;color:#1c2430;background:#f6f7f9}
+  h1{font-size:1.4rem} .card{background:#fff;border:1px solid #dde1e7;border-radius:10px;padding:1rem;margin-bottom:1rem}
+  input[type=text]{width:70%;padding:.55rem;border:1px solid #c5ccd6;border-radius:6px}
+  button,select{padding:.55rem .8rem;border-radius:6px;border:1px solid #c5ccd6;background:#1f4fd8;color:#fff;cursor:pointer}
+  select{background:#fff;color:#1c2430} .msg{margin:.6rem 0;white-space:pre-wrap} .user{font-weight:600}
+  details{font-size:.85rem;color:#4a5565;margin:.2rem 0} .muted{color:#6b7686;font-size:.85rem}
+</style>
+</head>
+<body>
+<h1>Document Intelligence Assistant</h1>
+<div class="card">
+  <input type="file" id="file" accept=".pdf,.docx,.txt,.md"> <button onclick="upload()">Upload</button>
+  <div id="docs" class="muted"></div>
+</div>
+<div class="card">
+  <div id="chat"></div>
+  <input type="text" id="q" placeholder="Ask a question about your documents" onkeydown="if(event.key==='Enter')ask()">
+  <select id="mode"><option>hybrid_rerank</option><option>hybrid</option><option>vector</option><option>bm25</option></select>
+  <button onclick="ask()">Ask</button>
+</div>
+<script>
+let conversationId = null;
+const el = id => document.getElementById(id);
+function add(cls, text){ const d=document.createElement('div'); d.className='msg '+cls; d.textContent=text; el('chat').appendChild(d); return d; }
+async function loadDocs(){
+  const docs = await (await fetch('/documents')).json();
+  el('docs').textContent = docs.length ? 'Indexed: ' + docs.map(d => `${d.filename} (${d.chunks} chunks)`).join(', ') : 'No documents yet.';
+}
+async function upload(){
+  const f = el('file').files[0]; if(!f) return;
+  const fd = new FormData(); fd.append('file', f);
+  el('docs').textContent = 'Indexing...';
+  const r = await fetch('/documents', {method:'POST', body:fd});
+  if(!r.ok) alertText((await r.json()).detail);
+  loadDocs();
+}
+function alertText(t){ add('muted', 'Error: ' + t); }
+async function ask(){
+  const question = el('q').value.trim(); if(!question) return;
+  el('q').value=''; add('user', 'You: ' + question);
+  const r = await fetch('/ask', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({question, conversation_id: conversationId, mode: el('mode').value})});
+  const data = await r.json();
+  if(!r.ok){ alertText(typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)); return; }
+  conversationId = data.conversation_id;
+  add('', data.answer);
+  add('muted', `${data.mode} | ${data.latency_ms} ms`);
+  for(const s of data.sources){
+    const d=document.createElement('details'); const sm=document.createElement('summary');
+    sm.textContent=`[${s.number}] ${s.filename}, page ${s.page}`; d.appendChild(sm);
+    d.appendChild(document.createTextNode(s.text)); el('chat').appendChild(d);
+  }
+}
+loadDocs();
+</script>
+</body>
+</html>
