@@ -53,6 +53,14 @@ With Docker: `docker compose up --build`
 
 ## Evaluation
 
+Quick demo on five public research papers (Windows: double-click `run_evaluation.bat`):
+
+```bash
+python -m scripts.demo_eval
+```
+
+On your own documents, after uploading them:
+
 ```bash
 python -m eval.build_testset --n 50      # one question per sampled chunk; review and prune the file
 python -m eval.run_eval --answers        # writes eval/results.md

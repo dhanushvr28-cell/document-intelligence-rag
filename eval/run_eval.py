@@ -44,10 +44,14 @@ def evaluate_answers(retriever, llm, testset: list[dict], mode: str, k: int, can
     for item in testset:
         chunks = retriever.search(item["question"], mode, k, candidate_k)
         contexts = [c.text for c in chunks]
-        answer = llm.answer(item["question"], contexts, [])
-        verdict = llm.chat([{"role": "user", "content": JUDGE.format(
-            question=item["question"], reference=item["answer"],
-            context="\n\n".join(contexts), answer=answer)}], 0.0)
+        try:
+            answer = llm.answer(item["question"], contexts, [])
+            verdict = llm.chat([{"role": "user", "content": JUDGE.format(
+                question=item["question"], reference=item["answer"],
+                context="\n\n".join(contexts), answer=answer)}], 0.0)
+        except Exception as exc:  # e.g. free-tier quota exhausted: report what was judged so far
+            print(f"Stopping answer evaluation early: {exc}")
+            break
         try:
             parsed = json.loads(verdict[verdict.find("{"):verdict.rfind("}") + 1])
         except json.JSONDecodeError:
